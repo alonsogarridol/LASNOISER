@@ -110,7 +110,7 @@ root.geometry("500x350")
 # Variables para almacenar las rutas de los archivos y el nivel de ruido
 input_path_var = tk.StringVar()
 output_path_var = tk.StringVar()
-noise_percentage_var = tk.StringVar(value="1.0")  # Valor predeterminado de ruido como porcentaje
+noise_percentage_var = tk.StringVar(value="2.0")  # Valor predeterminado de ruido como porcentaje
 
 # Etiqueta y botón para el archivo de entrada
 tk.Label(root, text="Archivo LAS de entrada:").pack(anchor="w", padx=10, pady=5)
