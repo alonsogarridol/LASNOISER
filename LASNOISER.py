@@ -5,15 +5,16 @@ import os
 import numpy as np
 
 
-def add_noise_to_las(input_path, output_path, noise_percentage):
+def add_noise_to_las(input_path, output_path, noise_percentage, fixed_error):
     """
-    Lee una nube de puntos LAS, agrega ruido a las coordenadas XYZ basado en un porcentaje del rango de datos,
-    y guarda el resultado respetando las clases del archivo LAS.
+    Lee una nube de puntos LAS, agrega ruido a las coordenadas XYZ basado en un porcentaje del rango de datos
+    y un error fijo, respetando las clases del archivo LAS.
 
     Parámetros:
     - input_path: Ruta del archivo LAS de entrada.
     - output_path: Ruta del archivo LAS de salida.
     - noise_percentage: Nivel de ruido como porcentaje del rango de coordenadas.
+    - fixed_error: Error fijo a sumar en cada coordenada XYZ.
     """
     try:
         # Abrir archivo LAS de entrada
@@ -30,10 +31,10 @@ def add_noise_to_las(input_path, output_path, noise_percentage):
         noise_std_y = range_y * noise_percentage / 100
         noise_std_z = range_z * noise_percentage / 100
 
-        # Agregar ruido aleatorio respetando las clases
-        noise_x = np.random.normal(0, noise_std_x, len(las.x))
-        noise_y = np.random.normal(0, noise_std_y, len(las.y))
-        noise_z = np.random.normal(0, noise_std_z, len(las.z))
+        # Generar ruido aleatorio y agregar el error fijo
+        noise_x = np.random.normal(0, noise_std_x, len(las.x)) + fixed_error
+        noise_y = np.random.normal(0, noise_std_y, len(las.y)) + fixed_error
+        noise_z = np.random.normal(0, noise_std_z, len(las.z)) + fixed_error
 
         las.x += noise_x
         las.y += noise_y
@@ -86,6 +87,7 @@ def process_files():
     input_path = input_path_var.get()
     output_path = output_path_var.get()
     noise_percentage = noise_percentage_var.get()
+    fixed_error = fixed_error_var.get()
 
     if not input_path or not output_path:
         messagebox.showwarning("Advertencia", "Por favor selecciona ambas rutas de archivo.")
@@ -93,24 +95,26 @@ def process_files():
 
     try:
         noise_percentage = float(noise_percentage)
-        if noise_percentage < 0:
-            raise ValueError("El porcentaje debe ser un número positivo.")
+        fixed_error = float(fixed_error)
+        if noise_percentage < 0 or fixed_error < 0:
+            raise ValueError("Los valores deben ser números positivos.")
     except ValueError as e:
-        messagebox.showerror("Error", f"Por favor introduce un número válido para el porcentaje de ruido.\n{e}")
+        messagebox.showerror("Error", f"Por favor introduce valores válidos.\n{e}")
         return
 
-    add_noise_to_las(input_path, output_path, noise_percentage)
+    add_noise_to_las(input_path, output_path, noise_percentage, fixed_error)
 
 
 # Configuración de la ventana principal
 root = tk.Tk()
 root.title("Agregar Ruido a LAS")
-root.geometry("500x350")
+root.geometry("500x400")
 
-# Variables para almacenar las rutas de los archivos y el nivel de ruido
+# Variables para almacenar las rutas de los archivos y los niveles de ruido
 input_path_var = tk.StringVar()
 output_path_var = tk.StringVar()
-noise_percentage_var = tk.StringVar(value="2.0")  # Valor predeterminado de ruido como porcentaje
+noise_percentage_var = tk.StringVar(value="1.0")  # Valor predeterminado de ruido como porcentaje
+fixed_error_var = tk.StringVar(value="0.0")  # Valor predeterminado de error fijo
 
 # Etiqueta y botón para el archivo de entrada
 tk.Label(root, text="Archivo LAS de entrada:").pack(anchor="w", padx=10, pady=5)
@@ -125,6 +129,10 @@ tk.Button(root, text="Seleccionar archivo de salida", command=select_output_file
 # Campo para especificar ruido como porcentaje
 tk.Label(root, text="Ruido como porcentaje del rango (X, Y, Z):").pack(anchor="w", padx=10, pady=5)
 tk.Entry(root, textvariable=noise_percentage_var, width=20).pack(padx=10, pady=5)
+
+# Campo para especificar error fijo
+tk.Label(root, text="Error fijo a añadir (en unidades):").pack(anchor="w", padx=10, pady=5)
+tk.Entry(root, textvariable=fixed_error_var, width=20).pack(padx=10, pady=5)
 
 # Botón para iniciar el procesamiento
 tk.Button(root, text="Procesar archivo", command=process_files, padx=10, pady=5).pack(pady=20)
