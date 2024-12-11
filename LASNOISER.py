@@ -3,9 +3,13 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
 import numpy as np
+import time
+import random
 
 
-def add_noise_to_las(input_path, output_path, noise_percentage, fixed_error):
+
+
+def add_noise_to_las(input_path, output_path, noise_percentage, fixed_error, rng):
     """
     Lee una nube de puntos LAS, agrega ruido a las coordenadas XYZ basado en un porcentaje del rango de datos
     y un error fijo, respetando las clases del archivo LAS.
@@ -16,29 +20,41 @@ def add_noise_to_las(input_path, output_path, noise_percentage, fixed_error):
     - noise_percentage: Nivel de ruido como porcentaje del rango de coordenadas.
     - fixed_error: Error fijo a sumar en cada coordenada XYZ.
     """
+
+
     try:
         # Abrir archivo LAS de entrada
         with laspy.open(input_path) as las_file:
             las = las_file.read()
 
-        # Calcular el rango de las coordenadas
-        range_x = las.x.max() - las.x.min()
-        range_y = las.y.max() - las.y.min()
-        range_z = las.z.max() - las.z.min()
+            #(-1) ^ round(rand(1)) * ((0.8 + (1 - 0.8) * rand()) * 0.002)
 
-        # Calcular el nivel de ruido (en función del porcentaje)
-        noise_std_x = range_x * noise_percentage / 100
-        noise_std_y = range_y * noise_percentage / 100
-        noise_std_z = range_z * noise_percentage / 100
+            for index, x in enumerate(las.x):
+                noise_x = ((-1) ** round(rng.random())) * (fixed_error * noise_percentage + (1 - fixed_error) * noise_percentage * (np.random.rand()))
+                las.x[index] += noise_x
+            for index, y in enumerate(las.y):
+                noise_y = ((-1) ** round(rng.random())) * (fixed_error * noise_percentage + (1 - fixed_error) * noise_percentage * (np.random.rand()))
+                las.y[index] += noise_y
+            for index, z in enumerate(las.z):
+                noise_z = ((-1) ** round(rng.random())) * (fixed_error * noise_percentage + (1 - fixed_error) * noise_percentage * (np.random.rand()))
+                las.z[index] += noise_z
 
-        # Generar ruido aleatorio y agregar el error fijo
-        noise_x = np.random.normal(0, noise_std_x, len(las.x)) + fixed_error
-        noise_y = np.random.normal(0, noise_std_y, len(las.y)) + fixed_error
-        noise_z = np.random.normal(0, noise_std_z, len(las.z)) + fixed_error
+            """    noise_x = ((-1) ** round(rng.random())) * (fixed_error * noise_percentage + (1 - fixed_error) * noise_percentage * (np.random.rand()))
+            noise_y = ((-1) ** round(rng.random())) * (
+                        fixed_error * noise_percentage + (1 - fixed_error) * noise_percentage * (np.random.rand()))
+            noise_z = ((-1) ** round(rng.random())) * (
+                        fixed_error * noise_percentage + (1 - fixed_error) * noise_percentage * (np.random.rand()))
+               for index, x in enumerate(las.x):
+                noise_x = ((-1) ** round(rng.random()))
+                noise_y = ((-1) ** round(rng.random()))
+                noise_z = ((-1) ** round(rng.random()))
+                las.x[index] += noise_x
+                las.y[index] += noise_y
+                las.z[index] += noise_z
 
-        las.x += noise_x
-        las.y += noise_y
-        las.z += noise_z
+            las.x += noise_x
+            las.y += noise_y
+            las.z += noise_z"""
 
         # Guardar archivo modificado
         with laspy.open(output_path, mode="w", header=las.header) as out_file:
@@ -81,6 +97,7 @@ def select_output_file():
 
 
 def process_files():
+    rng = np.random.default_rng()
     """
     Inicia el procesamiento del archivo LAS con ruido añadido.
     """
@@ -102,7 +119,7 @@ def process_files():
         messagebox.showerror("Error", f"Por favor introduce valores válidos.\n{e}")
         return
 
-    add_noise_to_las(input_path, output_path, noise_percentage, fixed_error)
+    add_noise_to_las(input_path, output_path, noise_percentage, fixed_error, rng)
 
 
 # Configuración de la ventana principal
@@ -113,8 +130,8 @@ root.geometry("500x400")
 # Variables para almacenar las rutas de los archivos y los niveles de ruido
 input_path_var = tk.StringVar()
 output_path_var = tk.StringVar()
-noise_percentage_var = tk.StringVar(value="1.0")  # Valor predeterminado de ruido como porcentaje
-fixed_error_var = tk.StringVar(value="0.0")  # Valor predeterminado de error fijo
+noise_percentage_var = tk.StringVar(value="0.02")  # Valor predeterminado de ruido
+fixed_error_var = tk.StringVar(value="0.003")  # Valor predeterminado de error fijo
 
 # Etiqueta y botón para el archivo de entrada
 tk.Label(root, text="Archivo LAS de entrada:").pack(anchor="w", padx=10, pady=5)
@@ -127,11 +144,11 @@ tk.Entry(root, textvariable=output_path_var, width=60, state="readonly").pack(pa
 tk.Button(root, text="Seleccionar archivo de salida", command=select_output_file).pack(padx=10, pady=5)
 
 # Campo para especificar ruido como porcentaje
-tk.Label(root, text="Ruido como porcentaje del rango (X, Y, Z):").pack(anchor="w", padx=10, pady=5)
+tk.Label(root, text="Ruido (X, Y, Z):").pack(anchor="w", padx=10, pady=5)
 tk.Entry(root, textvariable=noise_percentage_var, width=20).pack(padx=10, pady=5)
 
 # Campo para especificar error fijo
-tk.Label(root, text="Error fijo a añadir (en unidades):").pack(anchor="w", padx=10, pady=5)
+tk.Label(root, text="Error fijo a añadir (en metros):").pack(anchor="w", padx=10, pady=5)
 tk.Entry(root, textvariable=fixed_error_var, width=20).pack(padx=10, pady=5)
 
 # Botón para iniciar el procesamiento
